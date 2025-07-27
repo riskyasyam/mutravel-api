@@ -35,14 +35,20 @@ class PemesananController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'jamaahId' => 'required|exists:jamaahs,id',
-            'paketId' => 'required|exists:pakets,id',
-            'statusPembayaran' => 'required|string|max:255',
-            'catatan' => 'nullable|string',
-        ]);
+    $validatedData = $request->validate([
+        'jamaahId' => 'required|exists:jamaahs,id',
+        'paketId' => 'required|exists:pakets,id',
+        'statusPembayaran' => 'required|string|max:255',
+        'catatan' => 'nullable|string',
+    ]);
 
-        $pemesanan = Pemesanan::create($validatedData);
+    $pemesanan = Pemesanan::create([
+        'jamaah_id' => $validatedData['jamaahId'],
+        'paket_id' => $validatedData['paketId'],
+        'statusPembayaran' => $validatedData['statusPembayaran'],
+        'catatan' => $validatedData['catatan'] ?? null,
+        'tanggalPemesanan' => now(),
+    ]);
         return response()->json($pemesanan->load(['jamaah', 'paket']), 201);
     }
 
@@ -59,14 +65,20 @@ class PemesananController extends Controller
      */
     public function update(Request $request, Pemesanan $pemesanan)
     {
-        $validatedData = $request->validate([
-            'jamaahId' => 'sometimes|required|exists:jamaahs,id',
-            'paketId' => 'sometimes|required|exists:pakets,id',
-            'statusPembayaran' => 'sometimes|required|string|max:255',
-            'catatan' => 'nullable|string',
-        ]);
+    $validatedData = $request->validate([
+        'jamaahId' => 'required|exists:jamaahs,id',
+        'paketId' => 'required|exists:pakets,id',
+        'statusPembayaran' => 'required|string|max:255',
+        'catatan' => 'nullable|string',
+    ]);
 
-        $pemesanan->update($validatedData);
+    $pemesanan = Pemesanan::create([
+        'jamaah_id' => $validatedData['jamaahId'],
+        'paket_id' => $validatedData['paketId'],
+        'statusPembayaran' => $validatedData['statusPembayaran'],
+        'catatan' => $validatedData['catatan'] ?? null,
+        'tanggalPemesanan' => now(),
+    ]);
         return response()->json($pemesanan->load(['jamaah', 'paket']));
     }
 
@@ -77,5 +89,14 @@ class PemesananController extends Controller
     {
         $pemesanan->delete();
         return response()->json(null, 204);
+    }
+    public function recent()
+    {
+        $recentPemesanan = Pemesanan::with(['jamaah:id,namaLengkap', 'paket:id,namaPaket'])
+            ->orderBy('tanggalPemesanan', 'desc')
+            ->take(5)
+            ->get();
+
+        return response()->json($recentPemesanan);
     }
 }

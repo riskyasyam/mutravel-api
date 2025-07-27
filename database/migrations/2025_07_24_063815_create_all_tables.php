@@ -67,18 +67,18 @@ return new class extends Migration
         // Tabel untuk Pemesanan (menghubungkan jamaah dan paket)
         Schema::create('pemesanans', function (Blueprint $table) {
             $table->id();
-            $table->timestamp('tanggalPemesanan')->useCurrent();
+            $table->date('tanggalPemesanan');
             $table->string('statusPembayaran');
             $table->text('catatan')->nullable();
             
             // Foreign key untuk jamaah
-            $table->foreignId('jamaahId')->constrained('jamaahs')->onDelete('cascade');
+            $table->foreignId('jamaah_id')->constrained('jamaahs')->onDelete('cascade');
             
             // Foreign key untuk paket
-            $table->foreignId('paketId')->constrained('pakets')->onDelete('cascade');
+            $table->foreignId('paket_id')->constrained('pakets')->onDelete('cascade');
 
             // Mencegah duplikat
-            $table->unique(['jamaahId', 'paketId']);
+            $table->unique(['jamaah_id', 'paket_id']);
         });
 
         // Tabel untuk Tabungan
@@ -89,7 +89,7 @@ return new class extends Migration
             $table->string('keterangan')->nullable();
 
             // Foreign key untuk jamaah
-            $table->foreignId('jamaahId')->constrained('jamaahs')->onDelete('cascade');
+            $table->foreignId('jamaah_id')->constrained('jamaahs')->onDelete('cascade');
         });
     }
 

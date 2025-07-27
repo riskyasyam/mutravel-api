@@ -10,8 +10,36 @@ use Illuminate\Http\Request;
 class TabunganController extends Controller
 {
     /**
+     * Menampilkan rekapitulasi tabungan semua jamaah (dengan pencarian).
+     */
+    public function summary(Request $request)
+    {
+        $query = $request->input('query');
+
+        // Ambil data jamaah dengan relasi tabungannya
+        $jamaahs = Jamaah::with('tabungan')
+            ->when($query, function ($q, $query) {
+                return $q->where('namaLengkap', 'like', "%{$query}%");
+            })
+            ->orderBy('namaLengkap', 'asc')
+            ->get();
+            
+        // Hitung total dan jumlah setoran menggunakan collection method di PHP
+        // Ini memastikan semua jamaah ditampilkan, bahkan yang saldonya nol.
+        $result = $jamaahs->map(function ($jamaah) {
+            return [
+                'id' => $jamaah->id,
+                'namaLengkap' => $jamaah->namaLengkap,
+                'jumlahSetoran' => $jamaah->tabungan->count(),
+                'totalTabungan' => $jamaah->tabungan->sum('jumlahSetoran'),
+            ];
+        });
+
+        return response()->json($result);
+    }
+
+    /**
      * Menampilkan riwayat tabungan untuk seorang jamaah.
-     * Route: GET /api/jamaahs/{jamaah}/tabungans
      */
     public function index(Jamaah $jamaah)
     {
@@ -21,23 +49,26 @@ class TabunganController extends Controller
 
     /**
      * Menyimpan data setoran tabungan baru.
-     * Route: POST /api/tabungans
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'jamaahId' => 'required|exists:jamaahs,id',
-            'jumlahSetoran' => 'required|integer|min:1',
-            'keterangan' => 'nullable|string|max:255',
-        ]);
+    $validated = $request->validate([
+        'jamaah_id' => 'required|exists:jamaahs,id',
+        'jumlahSetoran' => 'required|numeric',
+        'keterangan' => 'nullable|string|max:255',
+    ]);
 
-        $tabungan = Tabungan::create($validatedData);
-        return response()->json($tabungan, 201);
+    $tabungan = Tabungan::create([
+        'jamaah_id' => $validated['jamaah_id'],
+        'jumlahSetoran' => $validated['jumlahSetoran'],
+        'keterangan' => $validated['keterangan'],
+    ]);
+
+    return response()->json($tabungan, 201);
     }
 
     /**
      * Menampilkan detail satu setoran.
-     * Route: GET /api/tabungans/{tabungan}
      */
     public function show(Tabungan $tabungan)
     {
@@ -46,7 +77,6 @@ class TabunganController extends Controller
 
     /**
      * Mengupdate data setoran.
-     * Route: PUT/PATCH /api/tabungans/{tabungan}
      */
     public function update(Request $request, Tabungan $tabungan)
     {
@@ -61,7 +91,6 @@ class TabunganController extends Controller
 
     /**
      * Menghapus data setoran.
-     * Route: DELETE /api/tabungans/{tabungan}
      */
     public function destroy(Tabungan $tabungan)
     {

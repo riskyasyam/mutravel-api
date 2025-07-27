@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 class PaketController extends Controller
 {
     /**
-     * Menampilkan daftar paket untuk landing page (6 terdekat).
+     * Menampilkan daftar 6 paket terdekat untuk landing page.
      */
     public function index()
     {
@@ -44,19 +44,17 @@ class PaketController extends Controller
             'ratingHotelMakkah' => 'required|integer|min:1|max:5',
             'ratingHotelMadinah' => 'required|integer|min:1|max:5',
             'sisaKursi' => 'required|integer',
-            'fotoPaket' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240', // max 10MB
+            'fotoPaket' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         if ($request->hasFile('fotoPaket')) {
-            // Simpan file dan dapatkan path-nya
-            $path = $request->file('fotoPaket')->store('public/uploads/pakets');
-            // Ubah path menjadi URL yang bisa diakses publik
-            $validatedData['fotoUrl'] = Storage::url($path);
+            $path = $request->file('fotoPaket')->store('uploads/pakets', 'public');
+            $validatedData['fotoUrl'] = '/storage/' . $path;
         }
-        
-        unset($validatedData['fotoPaket']);
 
+        unset($validatedData['fotoPaket']);
         $paket = Paket::create($validatedData);
+
         return response()->json($paket, 201);
     }
 
@@ -73,27 +71,35 @@ class PaketController extends Controller
      */
     public function update(Request $request, Paket $paket)
     {
-        // Note: Logika update file lebih kompleks, ini adalah contoh dasar
         $validatedData = $request->validate([
-            'namaPaket' => 'sometimes|required|string|max:255',
-            // ... tambahkan validasi lain ...
-            'fotoPaket' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'namaPaket' => 'required|string|max:255',
+            'deskripsi' => 'required|string',
+            'harga' => 'required|integer',
+            'durasi' => 'required|integer',
+            'tanggalKeberangkatan' => 'required|date',
+            'hotelMadinah' => 'required|string',
+            'hotelMakkah' => 'required|string',
+            'pesawat' => 'required|string',
+            'ratingHotelMakkah' => 'required|integer|min:1|max:5',
+            'ratingHotelMadinah' => 'required|integer|min:1|max:5',
+            'sisaKursi' => 'required|integer',
+            'fotoPaket' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
-        
+
         if ($request->hasFile('fotoPaket')) {
-            // Hapus file lama
+            // Hapus file lama jika ada
             if ($paket->fotoUrl) {
                 Storage::delete(str_replace('/storage', 'public', $paket->fotoUrl));
             }
-            // Simpan file baru
-            $path = $request->file('fotoPaket')->store('public/uploads/pakets');
-            $validatedData['fotoUrl'] = Storage::url($path);
+
+            $path = $request->file('fotoPaket')->store('uploads/pakets', 'public');
+            $validatedData['fotoUrl'] = '/storage/' . $path;
         }
-        
+
         unset($validatedData['fotoPaket']);
 
         $paket->update($validatedData);
-        return response()->json($paket);
+        return response()->json($paket, 200);
     }
 
     /**
@@ -104,7 +110,8 @@ class PaketController extends Controller
         if ($paket->fotoUrl) {
             Storage::delete(str_replace('/storage', 'public', $paket->fotoUrl));
         }
+
         $paket->delete();
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Paket berhasil dihapus.'], 200);
     }
 }
